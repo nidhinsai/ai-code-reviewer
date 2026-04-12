@@ -1,10 +1,14 @@
 # ai-code-reviewer
 
-Automated AI code review for every Pull Request, powered by Anthropic Claude.
+Automated AI code review for every Pull Request, powered by **GitHub Models (gpt-4o)**.
 
-Add one file to any repository and every new PR will automatically receive:
+> **No API keys required.**
+> Uses `GITHUB_TOKEN` — auto-injected in every Actions run — to call GitHub Models
+> via your Copilot subscription.
+
+Every new PR gets:
 - A **summary comment** with per-file ratings (good / needs work / critical)
-- **Inline review comments** on specific lines in the diff
+- **Inline review comments** pinned to specific lines in the diff
 
 ---
 
@@ -14,37 +18,27 @@ Add one file to any repository and every new PR will automatically receive:
 Developer opens PR
         |
         v
-Caller repo workflow triggers (pull_request event)
+Caller repo .github/workflows/pr-review.yml triggers
         |
         v
-Calls nidhinsai/ai-code-reviewer/.github/workflows/pr-review.yml
+Calls nidhinsai/ai-code-reviewer/.github/workflows/pr-review.yml (reusable workflow)
         |
         v
 Fetches PR diff from GitHub API
         |
         v
-Sends each changed file + diff to Claude (claude-3-5-sonnet)
+Sends each changed file + diff to GitHub Models (gpt-4o)
+via GITHUB_TOKEN — no Anthropic / OpenAI key needed
         |
         v
-Posts summary comment + inline review comments on the PR
+Posts summary + inline review comments on the PR
 ```
 
 ---
 
-## Setup (2 steps)
+## Setup — 1 step only
 
-### Step 1 — Add your Anthropic API key
-
-In each target repository (or at the org level):
-Settings -> Secrets and variables -> Actions -> New repository secret
-
-| Name                | Value                  |
-|---------------------|------------------------|
-| ANTHROPIC_API_KEY   | Your Anthropic API key |
-
-### Step 2 — Add the caller workflow
-
-Create `.github/workflows/pr-review.yml` in each target repository:
+Create `.github/workflows/pr-review.yml` in each repository you want reviewed:
 
 ```yaml
 name: AI PR Code Review
@@ -59,8 +53,6 @@ jobs:
     with:
       pr_number: ${{ github.event.pull_request.number }}
       repository: ${{ github.repository }}
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     permissions:
       pull-requests: write
       contents: read
@@ -68,12 +60,16 @@ jobs:
 
 A ready-to-copy template is at `templates/pr-review-caller.yml`.
 
+No secrets to add. `GITHUB_TOKEN` is injected automatically and grants access to
+GitHub Models via your Copilot subscription.
+
 ---
 
 ## What gets reviewed
 
-Included: .java .py .ts .js .go .rs .kt .swift .c .cpp .cs and all other code files
-Skipped:  .md .yml .json .lock .xml .toml images fonts binaries
+| Reviewed | Skipped |
+|----------|---------|
+| `.java` `.py` `.ts` `.js` `.go` `.rs` `.kt` `.swift` `.c` `.cpp` `.cs` and all other code files | `.md` `.yml` `.json` `.lock` `.xml` `.toml` images fonts binaries |
 
 ---
 
@@ -83,11 +79,11 @@ Skipped:  .md .yml .json .lock .xml .toml images fonts binaries
 ai-code-reviewer/
 ├── .github/
 │   └── workflows/
-│       └── pr-review.yml         <- Reusable workflow (call from other repos)
+│       └── pr-review.yml         <- Reusable workflow (call this from other repos)
 ├── scripts/
-│   └── review.py                 <- Claude review agent
+│   └── review.py                 <- Review agent (GitHub Models / gpt-4o)
 ├── templates/
-│   └── pr-review-caller.yml      <- Copy this to your target repos
+│   └── pr-review-caller.yml      <- Copy this file into your target repos
 ├── requirements.txt
 └── README.md
 ```
@@ -96,7 +92,12 @@ ai-code-reviewer/
 
 ## Configuration
 
-| Environment variable | Default                         | Description                                   |
-|----------------------|---------------------------------|-----------------------------------------------|
-| CLAUDE_MODEL         | claude-3-5-sonnet-20241022      | Claude model to use                           |
-| GH_PAT               | (optional)                      | GitHub PAT if you need explicit write access  |
+| Environment variable | Default  | Description                                    |
+|----------------------|----------|------------------------------------------------|
+| `REVIEW_MODEL`       | `gpt-4o` | GitHub Models model to use                     |
+| `GH_PAT`             | optional | PAT only if you need explicit cross-repo access|
+
+Other available GitHub Models (Copilot subscription required):
+- `gpt-4o` — default, best quality
+- `gpt-4o-mini` — faster, lower rate-limit usage
+- `o1-mini`
