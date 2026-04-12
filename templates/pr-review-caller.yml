@@ -2,8 +2,8 @@
 # you want the AI code reviewer to monitor.
 #
 # Prerequisites:
-#   Add ANTHROPIC_API_KEY as a repository (or org-level) Actions secret.
-#   GITHUB_TOKEN is used automatically for posting comments — no extra setup needed.
+#   - A GitHub Copilot subscription (individual or business).
+#   - Nothing else. GITHUB_TOKEN is injected automatically by GitHub Actions.
 
 name: AI PR Code Review
 
@@ -17,10 +17,10 @@ jobs:
     with:
       pr_number: ${{ github.event.pull_request.number }}
       repository: ${{ github.repository }}
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      # GH_PAT is optional — GITHUB_TOKEN is used by default
-      # GH_PAT: ${{ secrets.GH_PAT }}
+    # No secrets needed — GITHUB_TOKEN is used automatically.
+    # Uncomment only if you need an explicit cross-repo PAT:
+    # secrets:
+    #   GH_PAT: ${{ secrets.GH_PAT }}
     permissions:
       pull-requests: write
       contents: read
