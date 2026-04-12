@@ -1,0 +1,56 @@
+name: AI PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "PR number to review"
+        required: true
+        type: number
+      repository:
+        description: "Target repository in owner/repo format"
+        required: true
+        type: string
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+        description: "Anthropic API key for Claude"
+      GH_PAT:
+        required: false
+        description: "GitHub PAT with pull-requests:write on target repo (optional)"
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout ai-code-reviewer
+        uses: actions/checkout@v4
+        with:
+          repository: nidhinsai/ai-code-reviewer
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run AI Code Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+          REPO: ${{ inputs.repository || github.repository }}
+          CLAUDE_MODEL: claude-3-5-sonnet-20241022
+        run: python scripts/review.py
