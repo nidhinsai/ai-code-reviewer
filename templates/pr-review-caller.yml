@@ -1,0 +1,26 @@
+# Copy this file to .github/workflows/pr-review.yml in any repository
+# you want the AI code reviewer to monitor.
+#
+# Prerequisites:
+#   Add ANTHROPIC_API_KEY as a repository (or org-level) Actions secret.
+#   GITHUB_TOKEN is used automatically for posting comments — no extra setup needed.
+
+name: AI PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  ai-review:
+    uses: nidhinsai/ai-code-reviewer/.github/workflows/pr-review.yml@main
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      repository: ${{ github.repository }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # GH_PAT is optional — GITHUB_TOKEN is used by default
+      # GH_PAT: ${{ secrets.GH_PAT }}
+    permissions:
+      pull-requests: write
+      contents: read
