@@ -38,7 +38,7 @@ REPO         = os.environ.get("REPO", "")
 MODEL        = os.environ.get("REVIEW_MODEL", "gpt-4o")
 EVENT_NAME   = os.environ.get("EVENT_NAME", "pull_request")   # pull_request | issue_comment
 COMMENT_BODY = os.environ.get("COMMENT_BODY", "")             # body of the triggering comment
-ISSUE_NUMBER = int(os.environ.get("ISSUE_NUMBER", "0"))       # for issue_comment trigger
+ISSUE_NUMBER = int(os.environ.get("ISSUE_NUMBER") or "0")     # for issue_comment trigger
 
 TRIGGER_PHRASE = "ai summarize"   # magic comment phrase to re-trigger
 
