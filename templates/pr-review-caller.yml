@@ -1,26 +1,41 @@
-# Copy this file to .github/workflows/pr-review.yml in any repository
-# you want the AI code reviewer to monitor.
+# Copy this file to .github/workflows/ai-pr-analysis.yml in any repository.
 #
-# Prerequisites:
-#   - A GitHub Copilot subscription (individual or business).
-#   - Nothing else. GITHUB_TOKEN is injected automatically by GitHub Actions.
+# Provides:
+#   1. Commit-by-commit PR summary (ported from Summarize-Pull-Request)
+#   2. Per-file code review with inline comments
+#   3. Magic re-trigger: comment "ai summarize" on any PR to re-run
+#
+# Prerequisites: GitHub Copilot subscription. No secrets needed.
 
-name: AI PR Code Review
+name: AI PR Analysis
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+  issue_comment:
+    types: [created]
+
 jobs:
-  ai-review:
+  ai-analysis:
+    # Skip non-PR issue comments and bot comments
+    if: >
+      github.event_name == 'pull_request' ||
+      (
+        github.event.issue.pull_request != null &&
+        !github.event.comment.performed_via_github_app &&
+        contains(github.event.comment.body, 'ai summarize')
+      )
     uses: nidhinsai/ai-code-reviewer/.github/workflows/pr-review.yml@main
     with:
-      pr_number: ${{ github.event.pull_request.number }}
-      repository: ${{ github.repository }}
-    # No secrets needed — GITHUB_TOKEN is used automatically.
-    # Uncomment only if you need an explicit cross-repo PAT:
-    # secrets:
-    #   GH_PAT: ${{ secrets.GH_PAT }}
+      pr_number:    ${{ github.event.pull_request.number || 0 }}
+      repository:   ${{ github.repository }}
+      event_name:   ${{ github.event_name }}
+      comment_body: ${{ github.event.comment.body || '' }}
+      issue_number: ${{ github.event.issue.number || 0 }}
     permissions:
       pull-requests: write
       contents: read
+    # No secrets needed — GITHUB_TOKEN is used automatically.
+    # secrets:
+    #   GH_PAT: ${{ secrets.GH_PAT }}
