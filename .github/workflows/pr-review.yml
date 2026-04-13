@@ -1,19 +1,36 @@
-name: AI PR Code Review
+name: AI PR Analysis
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+  issue_comment:
+    types: [created]
+
   workflow_call:
     inputs:
       pr_number:
         description: "PR number to review"
-        required: true
+        required: false
         type: number
       repository:
         description: "Target repository in owner/repo format"
         required: true
         type: string
+      event_name:
+        description: "Triggering event name"
+        required: false
+        type: string
+        default: "pull_request"
+      comment_body:
+        description: "Body of the triggering comment (for issue_comment trigger)"
+        required: false
+        type: string
+        default: ""
+      issue_number:
+        description: "Issue/PR number (for issue_comment trigger)"
+        required: false
+        type: number
     secrets:
       GH_PAT:
         required: false
@@ -23,8 +40,16 @@ on:
 
 jobs:
   review:
-    name: AI Code Review
+    name: AI PR Analysis
     runs-on: ubuntu-latest
+    # Skip bot-authored comments and non-PR issue comments
+    if: >
+      github.event_name != 'issue_comment' ||
+      (
+        github.event.issue.pull_request != null &&
+        !github.event.comment.performed_via_github_app &&
+        contains(github.event.comment.body, 'ai summarize')
+      )
     permissions:
       contents: read
       pull-requests: write
@@ -45,12 +70,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run AI Code Review
+      - name: Run AI PR Analysis
         env:
           # GITHUB_TOKEN is auto-injected by Actions and grants access to GitHub Models
           # via your Copilot subscription. No extra API key required.
-          GH_TOKEN:     ${{ secrets.GH_PAT || github.token }}
-          PR_NUMBER:    ${{ inputs.pr_number || github.event.pull_request.number }}
-          REPO:         ${{ inputs.repository || github.repository }}
-          REVIEW_MODEL: gpt-4o
+          GH_TOKEN:      ${{ secrets.GH_PAT || github.token }}
+          PR_NUMBER:     ${{ inputs.pr_number || github.event.pull_request.number || '' }}
+          REPO:          ${{ inputs.repository || github.repository }}
+          REVIEW_MODEL:  gpt-4o
+          EVENT_NAME:    ${{ inputs.event_name || github.event_name }}
+          COMMENT_BODY:  ${{ inputs.comment_body || github.event.comment.body || '' }}
+          ISSUE_NUMBER:  ${{ inputs.issue_number || github.event.issue.number || '' }}
         run: python scripts/review.py
