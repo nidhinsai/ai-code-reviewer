@@ -1,0 +1,42 @@
+name: CI – Lint & Validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt ruff
+
+      - name: Lint with ruff
+        run: ruff check scripts/
+
+      - name: Validate workflow YAML syntax
+        run: |
+          pip install pyyaml
+          python -c "
+          import yaml, glob, sys
+          errors = []
+          for f in glob.glob('.github/workflows/*.yml'):
+              try:
+                  yaml.safe_load(open(f))
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print('All workflow YAML files are valid.')
+          "
